@@ -119,3 +119,6 @@ dist
 
 #보안관련해서..
 package-lock.json
+
+#몽고디비 주소
+mongodb_data.js
