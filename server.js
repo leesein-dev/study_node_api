@@ -54,10 +54,17 @@ MongoClient.connect(DB_URL, function(err, client){
         db.collection('post').find().toArray(function(err, result){
             res.render('list.ejs', { posts : result });
         });
-        // db.collection('post').find().toArray(function(err, result){
-        //     res.jsonp(result);
-        // });
-        
+    });
+
+    app.delete('/delete', function(req, res){
+        // int 값이 아닌 string 갑이 들어가 있으므로, 형변환 필요!
+        // 서버랑 통신할 때 자료형 확인 필수!
+        req.body._id = parseInt(req.body._id);
+        db.collection('post').deleteOne(req.body, function(err, result) {
+            console.log('삭제 완료');
+            // 클라이언트에게 응답 보내기
+            res.status(200).send({ message : '성공했습니다' });
+        });
     });
 
 });
