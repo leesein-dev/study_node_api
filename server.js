@@ -2,7 +2,9 @@
 
 const express = require('express');
 const app = express();
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({
+    extended: true
+}));
 // 2021년 이후로 설치한 프로젝트는 body-parser 라이브러리가 express에 기본 포함되어 있어
 // 따로 npm 설치필요가 없다.
 // const bodyParser = require('body-parser');
@@ -15,10 +17,13 @@ const DB_URL = require('./mongodb_data.js').mongodbUrl;
 // ejs 라이브러리 사용 선언
 app.set('view engine', 'ejs');
 
+// CSS 파일 사용 선언
+app.use('/public', express.static('public'));
+
 // 저장할 데이터 변수
 let db;
 // mongodb 패스워드에 @가 들어가는 경우 %40으로 수정할 것
-MongoClient.connect(DB_URL, function(err, client){
+MongoClient.connect(DB_URL, function (err, client) {
 
     if (err) {
         return console.log(err);
@@ -27,60 +32,97 @@ MongoClient.connect(DB_URL, function(err, client){
     // db 폴더명
     db = client.db('todoapp');
 
-    app.listen(8080, function(){
+    app.listen(8080, function () {
         console.log('listening on 8080')
     });
 
     // db 폴더 안 collection에 Object 자료형으로 저장
-    app.post('/add', function(req, res){
-        
-        db.collection('counter').findOne({name : '총 게시물 갯수'}, function(err, result) {
+    app.post('/add', function (req, res) {
+
+        db.collection('counter').findOne({
+            name: '총 게시물 갯수'
+        }, function (err, result) {
             let totalPostCnt = result.totalPosts;
-            db.collection('post').insertOne({_id: totalPostCnt + 1, 제목 : req.body.title, 날짜 : req.body.date}, function(err, result) {
+            db.collection('post').insertOne({
+                _id: totalPostCnt + 1,
+                title: req.body.title,
+                date: req.body.date,
+                content: req.body.content,
+            }, function (err, result) {
                 console.log('저장완료');
-                            // update operator : $set (값 변경), $inc (값 증가) 등등...
-            db.collection('counter').updateOne({name : '총 게시물 갯수'}, {$inc : {totalPosts : 1}}, function(err, result) {
-                if (err) {
-                    console.log(err);
-                }
-            });
+                // update operator : $set (값 변경), $inc (값 증가) 등등...
+                db.collection('counter').updateOne({
+                    name: '총 게시물 갯수'
+                }, {
+                    $inc: {
+                        totalPosts: 1
+                    }
+                }, function (err, result) {
+                    if (err) {
+                        console.log(err);
+                    }
+                });
             });
         });
 
         res.send('전송완료');
     });
 
-    app.get('/list', function(req, res){
-        db.collection('post').find().toArray(function(err, result){
-            res.render('list.ejs', { posts : result });
+    app.get('/list', function (req, res) {
+        db.collection('post').find().toArray(function (err, result) {
+            res.render('list.ejs', {
+                posts: result
+            });
         });
     });
 
-    app.delete('/delete', function(req, res){
+    // URL parameter
+    app.get('/detail/:id', function (req, res) {
+        db.collection('post').findOne({
+            _id: parseInt(req.params.id)
+        }, function (err, result) {
+            if (result == null) {
+                console.log(err);
+            }
+            res.render('detail.ejs', {
+                data: result
+            });
+        });
+    });
+
+    app.delete('/delete', function (req, res) {
         // int 값이 아닌 string 갑이 들어가 있으므로, 형변환 필요!
         // 서버랑 통신할 때 자료형 확인 필수!
         req.body._id = parseInt(req.body._id);
-        db.collection('post').deleteOne(req.body, function(err, result) {
+        db.collection('post').deleteOne(req.body, function (err, result) {
             console.log('삭제 완료');
             // 클라이언트에게 응답 보내기
-            res.status(200).send({ message : '성공했습니다' });
+            res.status(200).send({
+                message: '성공했습니다'
+            });
         });
     });
 
 });
 
-app.get('/pet', function(req, res){
-    res.send('펫용품을 쇼핑할 수 있는 페이지입니다.');
+app.get('/', function (req, res) {
+    res.render('index.ejs');
+    // res.sendFile(__dirname + '/index.ejs');
 });
 
-app.get('/beauty', function(req, res){
-    res.send('뷰티용품 사세요.');
-});
-
-app.get('/', function(req, res){
-    res.sendFile(__dirname + '/index.html');
-});
-
-app.get('/write', function(req, res){
-    res.sendFile(__dirname + '/write.html');
+app.get('/write', function (req, res) {
+    res.render('write.ejs');
+    // res.sendFile(__dirname + '/write.ejs');
 })
+
+// 요청에 응답하는 여러가지 방밥
+// app.get('/temp', function (req, res) {
+//     res.status(200).send('success');
+//     res.sendFile('/uploads/logo.png');
+//     res.render('list.ejs', {
+//         posts: 1
+//     });
+//     res.status(200).json({
+//         'age': 28
+//     });
+// });
