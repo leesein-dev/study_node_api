@@ -14,6 +14,10 @@ app.use(express.urlencoded({
 const MongoClient = require('mongodb').MongoClient;
 const DB_URL = require('./mongodb_data.js').mongodbUrl;
 
+// HTML From에서 PUT, DELETE 사용하기
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 // ejs 라이브러리 사용 선언
 app.set('view engine', 'ejs');
 
@@ -102,6 +106,37 @@ MongoClient.connect(DB_URL, function (err, client) {
             });
         });
     });
+
+    app.get('/edit/:id', function (req, res) {
+        db.collection('post').findOne({
+            _id: parseInt(req.params.id)
+        }, function (err, result) {
+            if (result == null) {
+                console.log(err);
+            }
+            res.render('edit.ejs', {
+                data: result,
+            })
+        })
+    })
+
+    app.put('/edit', function (req, res) {
+        // 첫번째 파라미터 수정할 게시글
+        // 두번째 파라미터 수정할 데이터
+        // 세번째 파라미터 콜백함수
+        db.collection('post').updateOne({
+            _id: parseInt(req.body.id),
+        }, {
+            $set: {
+                title: req.body.title,
+                date: req.body.date,
+                content: req.body.content,
+            }
+        }, function (err, result) {
+            // 다른 페이지로 이동
+            res.redirect(`/detail/${req.body.id}`);
+        })
+    })
 
 });
 
